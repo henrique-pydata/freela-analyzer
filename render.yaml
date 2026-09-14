@@ -1,0 +1,80 @@
+services:
+  - type: web
+    name: freela-analyzer-api
+    runtime: docker
+    plan: 0.5c-512mb
+    region: ohio
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    dockerCommand: /bin/sh -c "python backend/scripts/migrate.py && uvicorn backend.src.api.app:app --host 0.0.0.0 --port ${PORT:-10000}"
+    healthCheckPath: /health
+    maxShutdownDelaySeconds: 300
+    envVars:
+      - key: FREELA_DB_CONNECTION_STRING
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-3.6-flash
+      - key: GEMINI_MAX_TENTATIVAS
+        value: "4"
+      - key: GEMINI_BACKOFF_INICIAL
+        value: "2"
+      - key: GEMINI_BACKOFF_MAXIMO
+        value: "60"
+      - key: GEMINI_INTERVALO_MINIMO
+        value: "2"
+      - key: PLAYWRIGHT_HEADLESS
+        value: "true"
+      - key: LOG_LEVEL
+        value: INFO
+      - key: SYNC_WORKER_POLL_SECONDS
+        value: "2"
+      - key: SYNC_STALE_MINUTES
+        value: "10"
+      - key: FREELA_CORS_ORIGINS
+        sync: false
+
+  - type: worker
+    name: freela-analyzer-worker
+    runtime: docker
+    plan: 0.5c-512mb
+    region: ohio
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    dockerCommand: /bin/sh -c "python backend/scripts/migrate.py && python -m backend.src.worker"
+    maxShutdownDelaySeconds: 300
+    envVars:
+      - key: FREELA_DB_CONNECTION_STRING
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-3.6-flash
+      - key: GEMINI_MAX_TENTATIVAS
+        value: "4"
+      - key: GEMINI_BACKOFF_INICIAL
+        value: "2"
+      - key: GEMINI_BACKOFF_MAXIMO
+        value: "60"
+      - key: GEMINI_INTERVALO_MINIMO
+        value: "2"
+      - key: PLAYWRIGHT_HEADLESS
+        value: "true"
+      - key: LOG_LEVEL
+        value: INFO
+      - key: SYNC_WORKER_POLL_SECONDS
+        value: "2"
+      - key: SYNC_STALE_MINUTES
+        value: "10"
+
+  - type: web
+    name: freela-analyzer-web
+    runtime: docker
+    plan: free
+    region: ohio
+    dockerfilePath: ./frontend/Dockerfile
+    dockerContext: ./frontend
+    envVars:
+      - key: VITE_API_URL
+        sync: false

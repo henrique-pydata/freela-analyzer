@@ -1,0 +1,46 @@
+services:
+  backend:
+    build: ./backend
+    environment:
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.6-flash}
+      GEMINI_MAX_TENTATIVAS: ${GEMINI_MAX_TENTATIVAS:-4}
+      GEMINI_BACKOFF_INICIAL: ${GEMINI_BACKOFF_INICIAL:-2}
+      GEMINI_BACKOFF_MAXIMO: ${GEMINI_BACKOFF_MAXIMO:-60}
+      GEMINI_INTERVALO_MINIMO: ${GEMINI_INTERVALO_MINIMO:-2}
+      FREELA_DB_CONNECTION_STRING: ${FREELA_DB_CONNECTION_STRING}
+      FREELA_CORS_ORIGINS: ${FREELA_CORS_ORIGINS}
+      PLAYWRIGHT_HEADLESS: "true"
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+  worker:
+    build: ./backend
+    environment:
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.6-flash}
+      GEMINI_MAX_TENTATIVAS: ${GEMINI_MAX_TENTATIVAS:-4}
+      GEMINI_BACKOFF_INICIAL: ${GEMINI_BACKOFF_INICIAL:-2}
+      GEMINI_BACKOFF_MAXIMO: ${GEMINI_BACKOFF_MAXIMO:-60}
+      GEMINI_INTERVALO_MINIMO: ${GEMINI_INTERVALO_MINIMO:-2}
+      FREELA_DB_CONNECTION_STRING: ${FREELA_DB_CONNECTION_STRING}
+      PLAYWRIGHT_HEADLESS: "true"
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      SYNC_WORKER_POLL_SECONDS: ${SYNC_WORKER_POLL_SECONDS:-2}
+      SYNC_STALE_MINUTES: ${SYNC_STALE_MINUTES:-10}
+    command: ["/bin/sh", "-c", "python backend/scripts/migrate.py && python -m backend.src.worker"]
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: ${VITE_API_URL}
+    environment:
+      PORT: "3000"
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    restart: unless-stopped
